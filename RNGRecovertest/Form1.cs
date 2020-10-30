@@ -53,10 +53,27 @@ namespace RNGRecovertest
                 flags[val] = true;
                 low[val] = (byte)(i);
             }
-            uint tid = uint.Parse(textBox1.Text);
+            uint tid, PIDhigh, PIDlow;
+            try
+            {
+                tid = uint.Parse(textBox1.Text);
+            }
+            catch
+            {
+                MessageBox.Show("Error: TID entered incorrectly.");
+                return;
+            }
             string pid = textBox2.Text;
-            uint PIDhigh = uint.Parse(pid.Substring(0, 4), System.Globalization.NumberStyles.HexNumber);
-            uint PIDlow = uint.Parse(pid.Substring(4, 4), System.Globalization.NumberStyles.HexNumber);
+            try
+            {
+                PIDhigh = uint.Parse(pid.Substring(0, 4), System.Globalization.NumberStyles.HexNumber);
+                PIDlow = uint.Parse(pid.Substring(4, 4), System.Globalization.NumberStyles.HexNumber);
+            }
+            catch
+            {
+                MessageBox.Show("Error: PID entered incorrectly. Make sure it is 8 characters long. Short PIDs should lead with 0s so that they are 8 characters.");
+                return;
+            }
             uint psv = (PIDlow ^ PIDhigh) / 8;
             uint prv = (PIDlow ^ PIDhigh) - 8 * psv;
             List<uint> sids = new List<uint>();
