@@ -54,7 +54,7 @@ namespace RNGRecovertest
                 flags[val] = true;
                 low[val] = (byte)(i);
             }
-            uint tid, PIDhigh, PIDlow;
+            uint tid, pid, PIDhigh, PIDlow;
             try
             {
                 tid = uint.Parse(textBox1.Text);
@@ -64,15 +64,15 @@ namespace RNGRecovertest
                 MessageBox.Show("Error: TID entered incorrectly.");
                 return;
             }
-            string pid = textBox2.Text;
             try
             {
-                PIDhigh = uint.Parse(pid.Substring(0, 4), System.Globalization.NumberStyles.HexNumber);
-                PIDlow = uint.Parse(pid.Substring(4, 4), System.Globalization.NumberStyles.HexNumber);
+                pid = uint.Parse(textBox2.Text, System.Globalization.NumberStyles.HexNumber);
+                PIDhigh = (pid >> 16);
+                PIDlow = (pid & 0xFFFF);
             }
             catch
             {
-                MessageBox.Show("Error: PID entered incorrectly. Make sure it is 8 characters long. Short PIDs should lead with 0s so that they are 8 characters.");
+                MessageBox.Show("Error: PID entered incorrectly.");
                 return;
             }
             uint psv = (PIDlow ^ PIDhigh) / 8;
