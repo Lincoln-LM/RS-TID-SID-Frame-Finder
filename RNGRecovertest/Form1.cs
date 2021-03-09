@@ -38,7 +38,7 @@ namespace RNGRecovertest
             foreach (byte element in low) {
                 low[count] = 0;
                 count++;
-                    }
+            }
             count = 0;
             foreach (bool element in flags)
             {
@@ -50,9 +50,9 @@ namespace RNGRecovertest
                 uint right = (uint)(mult * i + add);
                 ushort val = (ushort)(right >> 16);
                 flags[val] = true;
-                low[val--] = (byte)(i);
+                low[val--] = (byte)i;
                 flags[val] = true;
-                low[val] = (byte)(i);
+                low[val] = (byte)i;
             }
             uint tid, pid, PIDhigh, PIDlow;
             try
@@ -67,27 +67,24 @@ namespace RNGRecovertest
             try
             {
                 pid = uint.Parse(textBox2.Text, System.Globalization.NumberStyles.HexNumber);
-                PIDhigh = (pid >> 16);
-                PIDlow = (pid & 0xFFFF);
+                PIDhigh = pid >> 16;
+                PIDlow = pid & 0xFFFF;
             }
             catch
             {
                 MessageBox.Show("Error: PID entered incorrectly.");
                 return;
             }
-            uint psv = (PIDlow ^ PIDhigh) / 8;
-            uint prv = (PIDlow ^ PIDhigh) - 8 * psv;
-            List<uint> sids = new List<uint>();
-            List<uint> sids2 = new List<uint>();
-            for (uint testsid = 0; testsid < 0xFFFF; testsid++)
+            uint xor = PIDlow ^ PIDhigh;
+            uint psv = xor / 8;
+            List<uint> shinySids = new List<uint>();
+            List<uint> possibileSids = new List<uint>();
+            for (uint testsid = (xor^tid) & 0xFFF8; testsid < ((xor ^ tid) & 0xFFF8) + 8; testsid++)
             {
-                if ((testsid ^ tid)/8 == psv)
-                {
-                    sids.Add(testsid);
-                }
+                shinySids.Add(testsid);
             }
             List<uint> origin = new List<uint>();
-            foreach (uint sid in sids)
+            foreach (uint sid in shinySids)
             {
                 string TSIDlow = sid.ToString("X4");
                 string TSIDhigh = tid.ToString("X4");
@@ -95,8 +92,8 @@ namespace RNGRecovertest
                 
                 uint tspid = uint.Parse(TSID, System.Globalization.NumberStyles.HexNumber);
                 uint first = tspid << 16;
-                uint second = (uint)(tspid & 0xFFFF0000);
-                uint search = (uint)(second - first * mult);
+                uint second = tspid & 0xFFFF0000;
+                uint search = second - first * mult;
                 for (short i = 0; i < 256; i++, search -= k)
                 {
                     if (flags[search >> 16])
@@ -104,33 +101,32 @@ namespace RNGRecovertest
                         uint test = first | (uint)(i << 8) | low[search >> 16];
                         if (((test * mult + add) & 0xffff0000) == second)
                         {
-                            LCRNG rng = new LCRNG((int)test);
-                            int seed = rng.nextUInt();
-                            origin.Add((uint)seed);
-                            sids2.Add(sid);
+                            PokeRNGR rng = new PokeRNGR(test);
+                            uint seed = rng.nextUInt();
+                            origin.Add(seed);
+                            possibileSids.Add(sid);
                         }
                     }
                 }
             }
             uint frame;
             int index = 0;
-            foreach (int s in origin)
+            foreach (uint s in origin)
             {
                 frame = 1;
-                LCRNG rng = new LCRNG(s);
-                while ((uint)rng.seed > (uint)0xFFFF)
+                PokeRNGR rng = new PokeRNGR(s);
+                while (rng.seed > 0xFFFF)
                 {
                     rng.nextUInt();
                     frame++;
                 }
-                uint temptsv = (sids2[index] ^ tid)/8;
-                uint temptrv = sids2[index] ^ tid - 8 * temptsv;
+                uint tempxor = possibileSids[index] ^ tid;
+                uint temptsv = tempxor/8;
                 string shiny = "Star";
-                if (temptrv == prv)
+                if (tempxor == xor)
                 {
                     shiny = "Square";
                 }
-                int ugh = sids2.Count;
                 var start = new DateTime(2000, 1, 1, 1, 0, 0);
                 start = DateTime.SpecifyKind(start, DateTimeKind.Utc);
                 var lastdate = new DateTime(start.Year, 12, 31);
@@ -174,7 +170,7 @@ namespace RNGRecovertest
                 var dt = DateTime.SpecifyKind(times[0], DateTimeKind.Utc);
                 string timestring = dt.ToString("ddd MMM d HH:mm:ss yyyy");
 
-                dataGridView1.Rows.Add(rng.seed.ToString("X4"), frame.ToString(),tid,sids2[index++],shiny,timestring);
+                dataGridView1.Rows.Add(rng.seed.ToString("X4"), frame.ToString(),tid,possibileSids[index++],shiny,timestring);
 
             }
         }
